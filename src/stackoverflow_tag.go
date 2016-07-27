@@ -1,34 +1,62 @@
 package main
 
 import (
-	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"log"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func main() {
 	url := "http://stackoverflow.com/questions/tagged/go"
+	starttime := time.Now()
 	parseTag(url)
+	endtime := time.Now()
+	timecost := endtime.Unix() - starttime.Unix()
+
+	log.Println("=====Begin time:\t", starttime.Format("2006-01-02 15:04:05"))
+	log.Println("=====End time:\t", endtime.Format("2006-01-02 15:04:05"))
+	log.Println("=====Total time cost:\t", timecost)
 }
 
 func parseTag(url string) {
 	totalPage := queryTotalPage(url + "?page=1&sort=newest&pagesize=50")
 
+	chs := make([]chan string, 10)
+	for i := 0; i < 10; i++ {
+		chs[i] = make(chan string, 1)
+	}
+
 	var pageurl string
 	for i := 1; i <= totalPage; i++ {
 		pageurl = url + "?page=" + strconv.Itoa(i) + "&sort=newest&pagesize=50"
-		log.Println("++++++++++Parsing page:\t", pageurl)
-		parseQuestions(pageurl)
+		go parseQuestions(pageurl, chs[(i-1)%10])
+		if i%10 == 0 {
+			clearChannel(chs, 10)
+		}
+	}
+
+	var leftCount = totalPage % 10
+	clearChannel(chs, leftCount)
+}
+
+func clearChannel(chs []chan string, size int) {
+	var url string
+	for i := 0; i < size; i++ {
+		url = <-chs[i]
+		log.Println("++++++++++Finished parsing page:\t", url)
 	}
 }
 
-func parseQuestions(url string) {
+func parseQuestions(url string, ch chan string) {
 	doc, err := goquery.NewDocument(url)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	ch <- url
+	log.Println("++++++++++Parsing page:\t", url)
 
 	doc.Find(".question-summary").Each(func(i int, s *goquery.Selection) {
 
@@ -46,14 +74,14 @@ func parseQuestions(url string) {
 		username := strings.TrimSpace(userdetails.Text())
 		userlink, _ := userdetails.Attr("href")
 
-		fmt.Println("-------------------------------------------------------------------")
-		fmt.Println("post time:", posttime)
-		fmt.Println("user name:", username)
-		fmt.Println("user link:", userlink)
-		fmt.Println("vote:", vote)
-		fmt.Println("views:", views)
-		fmt.Println("title:", title)
-		fmt.Println("link:", link)
+		log.Println("-------------------------------------------------------------------")
+		log.Println("post time:", posttime)
+		log.Println("user name:", username)
+		log.Println("user link:", userlink)
+		log.Println("vote:", vote)
+		log.Println("views:", views)
+		log.Println("title:", title)
+		log.Println("link:", link)
 	})
 }
 
