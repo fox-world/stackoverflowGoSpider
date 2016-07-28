@@ -1,14 +1,27 @@
 package main
 
 import (
+	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 )
 
+const CONCURRENT_SIZE = 10
+
 func main() {
+	logFileName := "test_" + time.Now().Format("2006_01_02") + ".log"
+	logFile, err := os.OpenFile(logFileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		fmt.Println("error opening file: %v", err)
+	}
+	defer logFile.Close()
+
+	log.SetOutput(logFile)
+
 	url := "http://stackoverflow.com/questions/tagged/go"
 	starttime := time.Now()
 	parseTag(url)
@@ -23,21 +36,21 @@ func main() {
 func parseTag(url string) {
 	totalPage := queryTotalPage(url + "?page=1&sort=newest&pagesize=50")
 
-	chs := make([]chan string, 10)
-	for i := 0; i < 10; i++ {
+	chs := make([]chan string, CONCURRENT_SIZE)
+	for i := 0; i < CONCURRENT_SIZE; i++ {
 		chs[i] = make(chan string, 1)
 	}
 
 	var pageurl string
 	for i := 1; i <= totalPage; i++ {
 		pageurl = url + "?page=" + strconv.Itoa(i) + "&sort=newest&pagesize=50"
-		go parseQuestions(pageurl, chs[(i-1)%10])
-		if i%10 == 0 {
-			clearChannel(chs, 10)
+		go parseQuestions(pageurl, chs[(i-1)%CONCURRENT_SIZE])
+		if i%CONCURRENT_SIZE == 0 {
+			clearChannel(chs, CONCURRENT_SIZE)
 		}
 	}
 
-	var leftCount = totalPage % 10
+	var leftCount = totalPage % CONCURRENT_SIZE
 	clearChannel(chs, leftCount)
 }
 
