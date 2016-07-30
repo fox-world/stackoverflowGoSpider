@@ -22,9 +22,8 @@ func main() {
 
 	log.SetOutput(logFile)
 
-	url := "http://stackoverflow.com/questions/tagged/go"
 	starttime := time.Now()
-	parseTag(url)
+	parseTag("go")
 	endtime := time.Now()
 	timecost := endtime.Unix() - starttime.Unix()
 
@@ -33,7 +32,8 @@ func main() {
 	log.Println("=====Total time cost:\t", timecost)
 }
 
-func parseTag(url string) {
+func parseTag(tag string) {
+	url := "http://stackoverflow.com/questions/tagged/"+tag
 	totalPage := queryTotalPage(url + "?page=1&sort=newest&pagesize=50")
 
 	chs := make([]chan string, CONCURRENT_SIZE)
