@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	"labix.org/v2/mgo"
 	"log"
 	"os"
 	"strconv"
@@ -10,7 +11,19 @@ import (
 	"time"
 )
 
+type Post struct {
+	title        string
+	link         string
+	postuser     string
+	postuserlink string
+	posttime     string
+	vote         string
+	viewed       string
+}
+
 const CONCURRENT_SIZE = 10
+
+var session mgo.Session
 
 func main() {
 	logFileName := "test_" + time.Now().Format("2006_01_02") + ".log"
@@ -20,7 +33,7 @@ func main() {
 	}
 	defer logFile.Close()
 
-	log.SetOutput(logFile)
+	//log.SetOutput(logFile)
 
 	starttime := time.Now()
 	parseTag("go")
@@ -33,7 +46,23 @@ func main() {
 }
 
 func parseTag(tag string) {
-	url := "http://stackoverflow.com/questions/tagged/"+tag
+
+	dburi := "mongodb://admin:123456@localhost/stackoverflow"
+	session, err := mgo.Dial(dburi)
+	defer session.Close()
+
+	mgo.SetDebug(true)
+	var aLogger *log.Logger
+	aLogger = log.New(os.Stderr, "", log.LstdFlags)
+	mgo.SetLogger(aLogger)
+
+	session.SetMode(mgo.Monotonic, true)
+	if err != nil {
+		panic(err)
+	}
+	postsCollection := session.DB("stackoverflow").C("posts")
+
+	url := "http://stackoverflow.com/questions/tagged/" + tag
 	totalPage := queryTotalPage(url + "?page=1&sort=newest&pagesize=50")
 
 	chs := make([]chan string, CONCURRENT_SIZE)
@@ -44,7 +73,7 @@ func parseTag(tag string) {
 	var pageurl string
 	for i := 1; i <= totalPage; i++ {
 		pageurl = url + "?page=" + strconv.Itoa(i) + "&sort=newest&pagesize=50"
-		go parseQuestions(pageurl, chs[(i-1)%CONCURRENT_SIZE])
+		go parseQuestions(pageurl, chs[(i-1)%CONCURRENT_SIZE], postsCollection)
 		if i%CONCURRENT_SIZE == 0 {
 			clearChannel(chs, CONCURRENT_SIZE)
 		}
@@ -62,7 +91,7 @@ func clearChannel(chs []chan string, size int) {
 	}
 }
 
-func parseQuestions(url string, ch chan string) {
+func parseQuestions(url string, ch chan string, pCollection *mgo.Collection) {
 	doc, err := goquery.NewDocument(url)
 	if err != nil {
 		log.Fatal(err)
@@ -86,6 +115,15 @@ func parseQuestions(url string, ch chan string) {
 		userdetails := s.Find(".user-details>a")
 		username := strings.TrimSpace(userdetails.Text())
 		userlink, _ := userdetails.Attr("href")
+
+		//err = pCollection.Insert(&Post{title: title, link: link, postuser: username, postuserlink: userlink, posttime: posttime, vote: vote, viewed: views})
+		err = pCollection.Insert(&Post{title,link,username,userlink,posttime,vote,views})
+
+		if err != nil {
+			panic(err)
+		} else {
+			log.Println("-------------insert data for psot:\t", title, "\tsuccess-------------------")
+		}
 
 		log.Println("-------------------------------------------------------------------")
 		log.Println("post time:", posttime)
