@@ -9,17 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"stackoverflow"
 )
-
-type Post struct {
-	title        string
-	link         string
-	postuser     string
-	postuserlink string
-	posttime     string
-	vote         string
-	viewed       string
-}
 
 const CONCURRENT_SIZE = 10
 
@@ -50,11 +41,6 @@ func parseTag(tag string) {
 	dburi := "mongodb://admin:123456@localhost/stackoverflow"
 	session, err := mgo.Dial(dburi)
 	defer session.Close()
-
-	mgo.SetDebug(true)
-	var aLogger *log.Logger
-	aLogger = log.New(os.Stderr, "", log.LstdFlags)
-	mgo.SetLogger(aLogger)
 
 	session.SetMode(mgo.Monotonic, true)
 	if err != nil {
@@ -117,7 +103,7 @@ func parseQuestions(url string, ch chan string, pCollection *mgo.Collection) {
 		userlink, _ := userdetails.Attr("href")
 
 		//err = pCollection.Insert(&Post{title: title, link: link, postuser: username, postuserlink: userlink, posttime: posttime, vote: vote, viewed: views})
-		err = pCollection.Insert(&Post{title,link,username,userlink,posttime,vote,views})
+		err = pCollection.Insert(&stackoverflow.Post{title, link, username, userlink, posttime, vote, views})
 
 		if err != nil {
 			panic(err)
