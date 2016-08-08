@@ -6,10 +6,10 @@ import (
 	"labix.org/v2/mgo"
 	"log"
 	"os"
+	"stackoverflow"
 	"strconv"
 	"strings"
 	"time"
-	"stackoverflow"
 )
 
 const CONCURRENT_SIZE = 10
@@ -88,22 +88,25 @@ func parseQuestions(url string, ch chan string, pCollection *mgo.Collection) {
 
 	doc.Find(".question-summary").Each(func(i int, s *goquery.Selection) {
 
-		posttime, _ := s.Find(".relativetime").Attr("title")
+		posttimestr, _ := s.Find(".relativetime").Attr("title")
 
 		linkSelection := s.Find(".summary>h3>a")
 		title := strings.TrimSpace(linkSelection.Text())
 		link, _ := linkSelection.Attr("href")
 
-		vote := s.Find(".vote-count-post>strong").Text()
-		views := strings.TrimSpace(s.Find(".views").Text())
-		views = strings.Split(views, " ")[0]
+		votestr := s.Find(".vote-count-post>strong").Text()
+		viewstr := strings.TrimSpace(s.Find(".views").Text())
+		viewstr = strings.Split(viewstr, " ")[0]
 
 		userdetails := s.Find(".user-details>a")
 		username := strings.TrimSpace(userdetails.Text())
 		userlink, _ := userdetails.Attr("href")
 
-		//err = pCollection.Insert(&Post{title: title, link: link, postuser: username, postuserlink: userlink, posttime: posttime, vote: vote, viewed: views})
-		err = pCollection.Insert(&stackoverflow.Post{title, link, username, userlink, posttime, vote, views})
+		layout := "2014-09-12 11:45:26.37Z"
+		posttime, _ := time.Parse(layout, posttimestr)
+		vote, _ := strconv.Atoi(votestr)
+		views, _ := strconv.Atoi(viewstr)
+		err = pCollection.Insert(&stackoverflow.Post{Title: title, Link: link, Postuser: username, Postuserlink: userlink, Posttime: posttime, Vote: vote, Viewed: views})
 
 		if err != nil {
 			panic(err)

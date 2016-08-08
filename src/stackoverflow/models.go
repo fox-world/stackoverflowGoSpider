@@ -1,12 +1,16 @@
 package stackoverflow
 
+import(
+"time"
+)
+
 type Post struct {
 	Title        string
 	Link         string
 	Postuser     string
 	Postuserlink string
-	Posttime     string
-	Vote         string
-	Viewed       string
+	Posttime     time.Time
+	Vote         int
+	Viewed       int
 }
 
