@@ -86,6 +86,8 @@ func parseQuestions(url string, ch chan string, pCollection *mgo.Collection) {
 	ch <- url
 	log.Println("++++++++++Parsing page:\t", url)
 
+	var posts []interface{}
+
 	doc.Find(".question-summary").Each(func(i int, s *goquery.Selection) {
 
 		posttimestr, _ := s.Find(".relativetime").Attr("title")
@@ -106,13 +108,9 @@ func parseQuestions(url string, ch chan string, pCollection *mgo.Collection) {
 		posttime, _ := time.Parse(layout, posttimestr)
 		vote, _ := strconv.Atoi(votestr)
 		views, _ := strconv.Atoi(viewstr)
-		err = pCollection.Insert(&stackoverflow.Post{Title: title, Link: link, Postuser: username, Postuserlink: userlink, Posttime: posttime, Vote: vote, Viewed: views})
 
-		if err != nil {
-			panic(err)
-		} else {
-			log.Println("-------------insert data for psot:\t", title, "\tsuccess-------------------")
-		}
+		post := stackoverflow.Post{Title: title, Link: link, Postuser: username, Postuserlink: userlink, Posttime: posttime, Vote: vote, Viewed: views}
+		posts = append(posts, post)
 
 		log.Println("-------------------------------------------------------------------")
 		log.Println("post time:", posttime)
@@ -123,6 +121,13 @@ func parseQuestions(url string, ch chan string, pCollection *mgo.Collection) {
 		log.Println("title:", title)
 		log.Println("link:", link)
 	})
+
+    err = pCollection.Insert(posts...)
+	if err != nil {
+		panic(err)
+	} else {
+		log.Println("-------------insert ",len(posts)," psots success-------------------")
+	}
 }
 
 func queryTotalPage(url string) int {
