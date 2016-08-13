@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"labix.org/v2/mgo"
+	"labix.org/v2/mgo/bson"
 	"log"
 	"os"
 	"stackoverflow"
@@ -104,30 +105,41 @@ func parseQuestions(url string, ch chan string, pCollection *mgo.Collection) {
 		username := strings.TrimSpace(userdetails.Text())
 		userlink, _ := userdetails.Attr("href")
 
-		layout := "2014-09-12 11:45:26.37Z"
+		layout := "2006-01-02 15:04:05Z"
 		posttime, _ := time.Parse(layout, posttimestr)
 		vote, _ := strconv.Atoi(votestr)
 		views, _ := strconv.Atoi(viewstr)
 
-		post := stackoverflow.Post{Title: title, Link: link, Postuser: username, Postuserlink: userlink, Posttime: posttime, Vote: vote, Viewed: views}
-		posts = append(posts, post)
+		dbPost := stackoverflow.Post{}
+		err = pCollection.Find(bson.M{"title": title, "posttime": posttime, "link": link}).One(&dbPost)
+		if err != nil {
+			fmt.Println("+++++++++++++++add new post:\t", title)
+			post := stackoverflow.Post{Title: title, Link: link, Postuser: username, Postuserlink: userlink, Posttime: posttime, Vote: vote, Viewed: views}
+			posts = append(posts, post)
 
-		log.Println("-------------------------------------------------------------------")
-		log.Println("post time:", posttime)
-		log.Println("user name:", username)
-		log.Println("user link:", userlink)
-		log.Println("vote:", vote)
-		log.Println("views:", views)
-		log.Println("title:", title)
-		log.Println("link:", link)
+			log.Println("-------------------------------------------------------------------")
+			log.Println("post time:", posttime)
+			log.Println("user name:", username)
+			log.Println("user link:", userlink)
+			log.Println("vote:", vote)
+			log.Println("views:", views)
+			log.Println("title:", title)
+			log.Println("link:", link)
+		} else {
+			fmt.Println("------------exists post:\t", title)
+		}
+
 	})
 
-    err = pCollection.Insert(posts...)
-	if err != nil {
-		panic(err)
-	} else {
-		log.Println("-------------insert ",len(posts)," psots success-------------------")
+	if len(posts) > 0 {
+		err = pCollection.Insert(posts...)
+		if err != nil {
+			panic(err)
+		} else {
+			log.Println("-------------insert ", len(posts), " psots success-------------------")
+		}
 	}
+
 }
 
 func queryTotalPage(url string) int {
