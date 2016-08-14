@@ -16,6 +16,7 @@ import (
 const CONCURRENT_SIZE = 10
 
 var session mgo.Session
+var totalRecord int
 
 func main() {
 	logFileName := "test_" + time.Now().Format("2006_01_02") + ".log"
@@ -35,6 +36,7 @@ func main() {
 	log.Println("=====Begin time:\t", starttime.Format("2006-01-02 15:04:05"))
 	log.Println("=====End time:\t", endtime.Format("2006-01-02 15:04:05"))
 	log.Println("=====Total time cost:\t", timecost)
+	log.Println("=====Total record:\t",totalRecord)
 }
 
 func parseTag(tag string) {
@@ -52,9 +54,9 @@ func parseTag(tag string) {
 	url := "http://stackoverflow.com/questions/tagged/" + tag
 	totalPage := queryTotalPage(url + "?page=1&sort=newest&pagesize=50")
 
-	chs := make([]chan string, CONCURRENT_SIZE)
+	chs := make([]chan int, CONCURRENT_SIZE)
 	for i := 0; i < CONCURRENT_SIZE; i++ {
-		chs[i] = make(chan string, 1)
+		chs[i] = make(chan int, 1)
 	}
 
 	var pageurl string
@@ -70,21 +72,18 @@ func parseTag(tag string) {
 	clearChannel(chs, leftCount)
 }
 
-func clearChannel(chs []chan string, size int) {
-	var url string
+func clearChannel(chs []chan int, size int) {
 	for i := 0; i < size; i++ {
-		url = <-chs[i]
-		log.Println("++++++++++Finished parsing page:\t", url)
+		totalRecord += <-chs[i]
 	}
 }
 
-func parseQuestions(url string, ch chan string, pCollection *mgo.Collection) {
+func parseQuestions(url string, ch chan int, pCollection *mgo.Collection) {
 	doc, err := goquery.NewDocument(url)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ch <- url
 	log.Println("++++++++++Parsing page:\t", url)
 
 	var posts []interface{}
@@ -113,7 +112,7 @@ func parseQuestions(url string, ch chan string, pCollection *mgo.Collection) {
 		dbPost := stackoverflow.Post{}
 		err = pCollection.Find(bson.M{"title": title, "posttime": posttime, "link": link}).One(&dbPost)
 		if err != nil {
-			fmt.Println("+++++++++++++++add new post:\t", title)
+			log.Println("+++++++++++++++add new post:\t", title)
 			post := stackoverflow.Post{Title: title, Link: link, Postuser: username, Postuserlink: userlink, Posttime: posttime, Vote: vote, Viewed: views}
 			posts = append(posts, post)
 
@@ -126,7 +125,7 @@ func parseQuestions(url string, ch chan string, pCollection *mgo.Collection) {
 			log.Println("title:", title)
 			log.Println("link:", link)
 		} else {
-			fmt.Println("------------exists post:\t", title)
+			log.Println("------------exists post:\t", title)
 		}
 
 	})
@@ -136,10 +135,11 @@ func parseQuestions(url string, ch chan string, pCollection *mgo.Collection) {
 		if err != nil {
 			panic(err)
 		} else {
-			log.Println("-------------insert ", len(posts), " psots success-------------------")
+			log.Println("-------------insert ", len(posts), " psots success for url:",url)
 		}
 	}
 
+   ch <- len(posts)
 }
 
 func queryTotalPage(url string) int {
