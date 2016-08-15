@@ -17,6 +17,7 @@ const CONCURRENT_SIZE = 10
 
 var session mgo.Session
 var totalRecord int
+var status stackoverflow.Status
 
 func main() {
 	logFileName := "test_" + time.Now().Format("2006_01_02") + ".log"
@@ -36,10 +37,12 @@ func main() {
 	log.Println("=====Begin time:\t", starttime.Format("2006-01-02 15:04:05"))
 	log.Println("=====End time:\t", endtime.Format("2006-01-02 15:04:05"))
 	log.Println("=====Total time cost:\t", timecost)
-	log.Println("=====Total record:\t",totalRecord)
+	log.Println("=====Total record:\t", totalRecord)
 }
 
 func parseTag(tag string) {
+
+	status.UpdateStatus(true)
 
 	dburi := "mongodb://admin:123456@localhost/stackoverflow"
 	session, err := mgo.Dial(dburi)
@@ -61,15 +64,23 @@ func parseTag(tag string) {
 
 	var pageurl string
 	for i := 1; i <= totalPage; i++ {
-		pageurl = url + "?page=" + strconv.Itoa(i) + "&sort=newest&pagesize=50"
-		go parseQuestions(pageurl, chs[(i-1)%CONCURRENT_SIZE], postsCollection)
-		if i%CONCURRENT_SIZE == 0 {
-			clearChannel(chs, CONCURRENT_SIZE)
+		if status.IsRun() {
+			pageurl = url + "?page=" + strconv.Itoa(i) + "&sort=newest&pagesize=50"
+			go parseQuestions(pageurl, chs[(i-1)%CONCURRENT_SIZE], postsCollection)
+			if i%CONCURRENT_SIZE == 0 {
+				clearChannel(chs, CONCURRENT_SIZE)
+			}
+		} else {
+			break
 		}
+
 	}
 
-	var leftCount = totalPage % CONCURRENT_SIZE
-	clearChannel(chs, leftCount)
+	if status.IsRun() {
+		var leftCount = totalPage % CONCURRENT_SIZE
+		clearChannel(chs, leftCount)
+	}
+
 }
 
 func clearChannel(chs []chan int, size int) {
@@ -79,6 +90,7 @@ func clearChannel(chs []chan int, size int) {
 }
 
 func parseQuestions(url string, ch chan int, pCollection *mgo.Collection) {
+	
 	doc, err := goquery.NewDocument(url)
 	if err != nil {
 		log.Fatal(err)
@@ -126,6 +138,9 @@ func parseQuestions(url string, ch chan int, pCollection *mgo.Collection) {
 			log.Println("link:", link)
 		} else {
 			log.Println("------------exists post:\t", title)
+			if status.IsRun() {
+				status.UpdateStatus(false)
+			}
 		}
 
 	})
@@ -135,11 +150,11 @@ func parseQuestions(url string, ch chan int, pCollection *mgo.Collection) {
 		if err != nil {
 			panic(err)
 		} else {
-			log.Println("-------------insert ", len(posts), " psots success for url:",url)
+			log.Println("-------------insert ", len(posts), " psots success for url:", url)
 		}
 	}
 
-   ch <- len(posts)
+	ch <- len(posts)
 }
 
 func queryTotalPage(url string) int {
