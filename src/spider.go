@@ -90,7 +90,7 @@ func clearChannel(chs []chan int, size int) {
 }
 
 func parseQuestions(url string, ch chan int, pCollection *mgo.Collection) {
-	
+
 	doc, err := goquery.NewDocument(url)
 	if err != nil {
 		log.Fatal(err)
@@ -111,10 +111,10 @@ func parseQuestions(url string, ch chan int, pCollection *mgo.Collection) {
 		votestr := s.Find(".vote-count-post>strong").Text()
 		viewstr := strings.TrimSpace(s.Find(".views").Text())
 		viewstr = strings.Split(viewstr, " ")[0]
-		
+
 		var tags []string
-		s.Find(".summary>.tags>.post-tag").Each(func(j int,t *goquery.Selection){
-		      tags=append(tags,strings.TrimSpace(t.Text()))
+		s.Find(".summary>.tags>.post-tag").Each(func(j int, t *goquery.Selection) {
+			tags = append(tags, strings.TrimSpace(t.Text()))
 		})
 
 		userdetails := s.Find(".user-details>a")
@@ -130,13 +130,14 @@ func parseQuestions(url string, ch chan int, pCollection *mgo.Collection) {
 		err = pCollection.Find(bson.M{"title": title, "posttime": posttime, "link": link}).One(&dbPost)
 		if err != nil {
 			log.Println("+++++++++++++++add new post:\t", title)
-			post := stackoverflow.Post{Title: title, Link: link,Tags:tags ,Postuser: username, Postuserlink: userlink, Posttime: posttime, Vote: vote, Viewed: views}
+			post := stackoverflow.Post{Title: title, Link: link, Tags: tags, Postuser: username, Postuserlink: userlink, Posttime: posttime, Vote: vote, Viewed: views}
 			posts = append(posts, post)
 
 			log.Println("-------------------------------------------------------------------")
 			log.Println("post time:", posttime)
 			log.Println("user name:", username)
 			log.Println("user link:", userlink)
+			log.Println("tags:", tags)
 			log.Println("vote:", vote)
 			log.Println("views:", views)
 			log.Println("title:", title)

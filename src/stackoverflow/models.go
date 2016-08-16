@@ -8,7 +8,7 @@ import (
 type Post struct {
 	Title        string
 	Link         string
-	Tags          []string
+	Tags         []string
 	Postuser     string
 	Postuserlink string
 	Posttime     time.Time
