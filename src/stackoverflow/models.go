@@ -1,13 +1,14 @@
 package stackoverflow
 
-import(
-"time"
-"sync"
+import (
+	"sync"
+	"time"
 )
 
 type Post struct {
 	Title        string
 	Link         string
+	Tags          []string
 	Postuser     string
 	Postuserlink string
 	Posttime     time.Time
@@ -32,4 +33,3 @@ func (s *Status) IsRun() (stop bool) {
 	s.mu.Unlock()
 	return
 }
-

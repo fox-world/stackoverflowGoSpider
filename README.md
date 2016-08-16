@@ -4,6 +4,7 @@ Using [Golang](https://golang.org/) to scrap data from [Stackoverflow](http://st
 ##Todo List
 - [x] Using [goquery](https://github.com/PuerkitoBio/goquery) to crawl and parse data.
 - [x] Using **goroutine** to crawl data in parallel.
+- [x] Using **sync** to avoid duplicate crawl
 - [ ] Using [MongoDB](https://www.mongodb.com/) to store data.
 
 ##License

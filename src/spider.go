@@ -111,6 +111,11 @@ func parseQuestions(url string, ch chan int, pCollection *mgo.Collection) {
 		votestr := s.Find(".vote-count-post>strong").Text()
 		viewstr := strings.TrimSpace(s.Find(".views").Text())
 		viewstr = strings.Split(viewstr, " ")[0]
+		
+		var tags []string
+		s.Find(".summary>.tags>.post-tag").Each(func(j int,t *goquery.Selection){
+		      tags=append(tags,strings.TrimSpace(t.Text()))
+		})
 
 		userdetails := s.Find(".user-details>a")
 		username := strings.TrimSpace(userdetails.Text())
@@ -125,7 +130,7 @@ func parseQuestions(url string, ch chan int, pCollection *mgo.Collection) {
 		err = pCollection.Find(bson.M{"title": title, "posttime": posttime, "link": link}).One(&dbPost)
 		if err != nil {
 			log.Println("+++++++++++++++add new post:\t", title)
-			post := stackoverflow.Post{Title: title, Link: link, Postuser: username, Postuserlink: userlink, Posttime: posttime, Vote: vote, Viewed: views}
+			post := stackoverflow.Post{Title: title, Link: link,Tags:tags ,Postuser: username, Postuserlink: userlink, Posttime: posttime, Vote: vote, Viewed: views}
 			posts = append(posts, post)
 
 			log.Println("-------------------------------------------------------------------")
