@@ -8,9 +8,9 @@ Using [Golang](https://golang.org/) to scrap data from [Stackoverflow](http://st
 - [x] Using [MongoDB](https://www.mongodb.com/) to store data.
 
 ##Todo List
-- [] send mail to specified email everyday
-- [] Build chart to show the anlysis data
-- [] Build web pages to display and operate
+- [ ] send mail to specified email everyday
+- [ ] Build chart to show the anlysis data
+- [ ] Build web pages to display and operate
 
 ##License
 The [MIT](http://opensource.org/licenses/MIT) License 
