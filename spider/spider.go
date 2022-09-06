@@ -7,7 +7,7 @@ import (
 	"labix.org/v2/mgo/bson"
 	"log"
 	"os"
-	"stackoverflow"
+	"stack-spider/stackoverflow"
 	"strconv"
 	"strings"
 	"time"
@@ -44,8 +44,8 @@ func parseTag(tag string) {
 
 	status.UpdateStatus(true)
 
-	dburi := "mongodb://admin:123456@localhost/stackoverflow"
-	session, err := mgo.Dial(dburi)
+	dbUri := "mongodb://admin:123456@localhost/stackoverflow"
+	session, err := mgo.Dial(dbUri)
 	defer session.Close()
 
 	session.SetMode(mgo.Monotonic, true)
@@ -62,11 +62,11 @@ func parseTag(tag string) {
 		chs[i] = make(chan int, 1)
 	}
 
-	var pageurl string
+	var pageUrl string
 	for i := 1; i <= totalPage; i++ {
 		if status.IsRun() {
-			pageurl = url + "?page=" + strconv.Itoa(i) + "&sort=newest&pagesize=50"
-			go parseQuestions(pageurl, chs[(i-1)%CONCURRENT_SIZE], postsCollection)
+			pageUrl = url + "?page=" + strconv.Itoa(i) + "&sort=newest&pagesize=50"
+			go parseQuestions(pageUrl, chs[(i-1)%CONCURRENT_SIZE], postsCollection)
 			if i%CONCURRENT_SIZE == 0 {
 				clearChannel(chs, CONCURRENT_SIZE)
 			}
@@ -102,41 +102,41 @@ func parseQuestions(url string, ch chan int, pCollection *mgo.Collection) {
 
 	doc.Find(".question-summary").Each(func(i int, s *goquery.Selection) {
 
-		posttimestr, _ := s.Find(".relativetime").Attr("title")
+		postTimeStr, _ := s.Find(".relativetime").Attr("title")
 
 		linkSelection := s.Find(".summary>h3>a")
 		title := strings.TrimSpace(linkSelection.Text())
 		link, _ := linkSelection.Attr("href")
 
-		votestr := s.Find(".vote-count-post>strong").Text()
-		viewstr := strings.TrimSpace(s.Find(".views").Text())
-		viewstr = strings.Split(viewstr, " ")[0]
+		voteStr := s.Find(".vote-count-post>strong").Text()
+		viewStr := strings.TrimSpace(s.Find(".views").Text())
+		viewStr = strings.Split(viewStr, " ")[0]
 
 		var tags []string
 		s.Find(".summary>.tags>.post-tag").Each(func(j int, t *goquery.Selection) {
 			tags = append(tags, strings.TrimSpace(t.Text()))
 		})
 
-		userdetails := s.Find(".user-details>a")
-		username := strings.TrimSpace(userdetails.Text())
-		userlink, _ := userdetails.Attr("href")
+		userDetails := s.Find(".user-details>a")
+		userName := strings.TrimSpace(userDetails.Text())
+		userLink, _ := userDetails.Attr("href")
 
 		layout := "2006-01-02 15:04:05Z"
-		posttime, _ := time.Parse(layout, posttimestr)
-		vote, _ := strconv.Atoi(votestr)
-		views, _ := strconv.Atoi(viewstr)
+		postTime, _ := time.Parse(layout, postTimeStr)
+		vote, _ := strconv.Atoi(voteStr)
+		views, _ := strconv.Atoi(viewStr)
 
 		dbPost := stackoverflow.Post{}
-		err = pCollection.Find(bson.M{"title": title, "posttime": posttime, "link": link}).One(&dbPost)
+		err = pCollection.Find(bson.M{"title": title, "postTime": postTime, "link": link}).One(&dbPost)
 		if err != nil {
 			log.Println("+++++++++++++++add new post:\t", title)
-			post := stackoverflow.Post{Title: title, Link: link, Tags: tags, Postuser: username, Postuserlink: userlink, Posttime: posttime, Vote: vote, Viewed: views}
+			post := stackoverflow.Post{Title: title, Link: link, Tags: tags, PostUser: userName, PostUserLink: userLink, PostTime: postTime, Vote: vote, Viewed: views}
 			posts = append(posts, post)
 
 			log.Println("-------------------------------------------------------------------")
-			log.Println("post time:", posttime)
-			log.Println("user name:", username)
-			log.Println("user link:", userlink)
+			log.Println("post time:", postTime)
+			log.Println("user name:", userName)
+			log.Println("user link:", userLink)
 			log.Println("tags:", tags)
 			log.Println("vote:", vote)
 			log.Println("views:", views)

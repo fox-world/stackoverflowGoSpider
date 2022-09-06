@@ -9,9 +9,9 @@ type Post struct {
 	Title        string
 	Link         string
 	Tags         []string
-	Postuser     string
-	Postuserlink string
-	Posttime     time.Time
+	PostUser     string
+	PostUserLink string
+	PostTime     time.Time
 	Vote         int
 	Viewed       int
 }
